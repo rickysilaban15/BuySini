@@ -1,6 +1,7 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './hooks/cart-context';
-import ScrollToTop from './components/ScrollToTop'; // ✅ IMPORT ScrollToTop
+import ScrollToTop from './components/ScrollToTop';
 
 // Public Pages
 import Index from './pages/Index';
@@ -31,10 +32,7 @@ import PaymentShippingLogos from './pages/PaymentShippingLogos';
 import Invoice from './pages/Invoice';
 import PaymentCallback from './pages/PaymentCallback';
 
-
-
-
-// admin pages
+// Admin Pages
 import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -49,10 +47,10 @@ import AdminPromos from './pages/admin/Promos';
 import AdminPaymentMethods from './pages/admin/PaymentMethods';
 import AdminShippingMethods from './pages/admin/ShippingMethods';
 
-// Protected Route Component
+// Protected Route for Admin
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminData = localStorage.getItem('admin');
-  
+
   if (!adminData) {
     return <Navigate to="/admin/login" replace />;
   }
@@ -66,7 +64,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     console.error('Auth check error:', error);
     return <Navigate to="/admin/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -74,6 +72,9 @@ export default function App() {
   return (
     <CartProvider>
       <BrowserRouter>
+        {/* ScrollToTop harus di dalam BrowserRouter */}
+        <ScrollToTop />
+
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
@@ -102,14 +103,13 @@ export default function App() {
           <Route path="/payment-shipping-logos" element={<PaymentShippingLogos />} />
           <Route path="/invoice" element={<Invoice />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
-      
 
-          {/* Admin Login (outside layout) */}
+          {/* Admin Login */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          
+
           {/* Admin Routes with Layout */}
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute>
                 <AdminLayout />
@@ -129,13 +129,10 @@ export default function App() {
             <Route path="shipping-methods" element={<AdminShippingMethods />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
-          
+
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-        
-        {/* ✅ TAMBAHKAN SCROLLTOTOP DI SINI - DI LUAR ROUTES */}
-        <ScrollToTop />
       </BrowserRouter>
     </CartProvider>
   );
