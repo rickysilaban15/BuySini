@@ -1,13 +1,7 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './hooks/cart-context';
 import ScrollToTop from './components/ScrollToTop';
-
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { CartProvider } from './hooks/cart-context';
-import ScrollToTop from './components/ScrollToTop'; // ✅ IMPORT ScrollToTop
-
 
 // Public Pages
 import Index from './pages/Index';
@@ -38,12 +32,7 @@ import PaymentShippingLogos from './pages/PaymentShippingLogos';
 import Invoice from './pages/Invoice';
 import PaymentCallback from './pages/PaymentCallback';
 
-
-
-
-
-// admin pages
-
+// Admin pages
 import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -58,16 +47,9 @@ import AdminPromos from './pages/admin/Promos';
 import AdminPaymentMethods from './pages/admin/PaymentMethods';
 import AdminShippingMethods from './pages/admin/ShippingMethods';
 
-
-// Protected Route for Admin
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const adminData = localStorage.getItem('admin');
-
-
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminData = localStorage.getItem('admin');
-  
 
   if (!adminData) {
     return <Navigate to="/admin/login" replace />;
@@ -83,8 +65,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/admin/login" replace />;
   }
 
-
-
   return <>{children}</>;
 };
 
@@ -92,10 +72,8 @@ export default function App() {
   return (
     <CartProvider>
       <BrowserRouter>
-<<<<<<< HEAD
-        {/* ScrollToTop harus di dalam BrowserRouter */}
+        {/* ScrollToTop di dalam BrowserRouter */}
         <ScrollToTop />
-
 
         <Routes>
           {/* Public Routes */}
@@ -126,23 +104,12 @@ export default function App() {
           <Route path="/invoice" element={<Invoice />} />
           <Route path="/payment-callback" element={<PaymentCallback />} />
 
-
-          {/* Admin Login */}
+          {/* Admin Login (outside layout) */}
           <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Admin Routes with Layout */}
           <Route
             path="/admin"
-
-      
-
-          {/* Admin Login (outside layout) */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          
-          {/* Admin Routes with Layout */}
-          <Route 
-            path="/admin" 
-
             element={
               <ProtectedRoute>
                 <AdminLayout />
@@ -163,7 +130,6 @@ export default function App() {
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 
-
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -171,16 +137,3 @@ export default function App() {
     </CartProvider>
   );
 }
-
-          
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        
-        {/* ✅ TAMBAHKAN SCROLLTOTOP DI SINI - DI LUAR ROUTES */}
-        <ScrollToTop />
-      </BrowserRouter>
-    </CartProvider>
-  );
-}
-
