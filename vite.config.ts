@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: "./",
+  base: "/", // ✅ UBAH INI MENJADI "/"
   build: {
     outDir: "dist",
     sourcemap: false,
