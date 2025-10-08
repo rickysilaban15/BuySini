@@ -29,8 +29,7 @@ import {
   Palette,
   MessageCircle,
   CreditCard,
-  Truck,
-  VolumeX
+  Truck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client.ts';
 
@@ -39,15 +38,6 @@ interface MenuItem {
   path: string;
   icon: React.ComponentType<any>;
   badge?: number;
-}
-
-interface Setting {
-  id: string;
-  key: string;
-  value: string;
-  type: string;
-  description?: string;
-  updated_at: string;
 }
 
 const AdminLayout: React.FC = () => {
@@ -238,10 +228,26 @@ const AdminLayout: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sidebarOpen, userMenuOpen, settingsMenuOpen]);
 
-  const handleLogout = () => {
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🚪 Logout initiated');
+    
+    // Clear all admin-related data
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
-    navigate('/admin/login');
+    localStorage.removeItem('admin');
+    
+    console.log('✅ LocalStorage cleared');
+    
+    // Close dropdown
+    setUserMenuOpen(false);
+    
+    // Navigate to login page with replace to prevent going back
+    navigate('/admin/login', { replace: true });
+    
+    console.log('🔀 Navigated to login page');
   };
 
   const getCurrentPageTitle = () => {
@@ -725,36 +731,34 @@ const AdminLayout: React.FC = () => {
               </div>
             </div>
 
-            {/* Right side */}
-            {/* Right side */}
-<div className="flex items-center gap-x-4 lg:gap-x-6">
-  {/* Quick Settings Dropdown */}
-  <div className="relative" id="settings-menu">
-    <button
-      type="button"
-      className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-      onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
-      title="Pengaturan Cepat"
-    >
-      <Settings className="h-6 w-6" />
-    </button>
-    {settingsMenuOpen && <SettingsDropdown />}
-  </div>
+            {/* Right side - FIXED: removed duplicate comment */}
+            <div className="flex items-center gap-x-4 lg:gap-x-6">
+              {/* Quick Settings Dropdown */}
+              <div className="relative" id="settings-menu">
+                <button
+                  type="button"
+                  className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+                  onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+                  title="Pengaturan Cepat"
+                >
+                  <Settings className="h-6 w-6" />
+                </button>
+                {settingsMenuOpen && <SettingsDropdown />}
+              </div>
 
-  {/* Notifications */}
-  <button 
-    type="button" 
-    className="relative -m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-    onClick={handleNotificationClick}
-  >
-    <Bell className="h-6 w-6" />
-    {orderCount > 0 && (
-      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-        {orderCount > 99 ? '99+' : orderCount}
-      </span>
-    )}
-  </button>
-
+              {/* Notifications */}
+              <button 
+                type="button" 
+                className="relative -m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+                onClick={handleNotificationClick}
+              >
+                <Bell className="h-6 w-6" />
+                {orderCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    {orderCount > 99 ? '99+' : orderCount}
+                  </span>
+                )}
+              </button>
 
               {/* Profile dropdown */}
               <div className="relative" id="user-menu">
