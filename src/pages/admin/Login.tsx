@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, AlertCircle } from 'lucide-react';
+import { supabaseAdmin } from '../lib/supabase-admin'; // Import supabase admin client
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -10,24 +11,13 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Cek apakah sudah login
+  // Cek apakah sudah login - SIMPLIFIED
   useEffect(() => {
-    const checkAdminAuth = async () => {
+    const checkAdminAuth = () => {
       try {
-        const token = localStorage.getItem('admin_token');
-        if (token) {
-          const response = await fetch('http://localhost:5000/api/admin/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            navigate('/admin/dashboard', { replace: true });
-          } else {
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin');
-          }
+        const adminData = localStorage.getItem('admin');
+        if (adminData) {
+          navigate('/admin/dashboard', { replace: true });
         }
       } catch (err) {
         console.error('Auth check error:', err);
@@ -39,69 +29,59 @@ const AdminLogin: React.FC = () => {
     checkAdminAuth();
   }, [navigate]);
 
-  // AdminLogin.tsx - Perbaiki bagian handleSubmit
-// AdminLogin.tsx - PERBAIKI bagian handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  // LOGIN DENGAN SUPABASE - TANPA BACKEND SERVER
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  // ⚠️ DEBUG: Log data yang akan dikirim
-  console.log('📤 Sending login data:', { email, password });
+    console.log('🔐 Login attempt:', email);
 
-  try {
-    const response = await fetch('http://localhost:5000/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email,      // ← GUNAKAN STATE email, BUKAN formData.email
-        password: password // ← GUNAKAN STATE password, BUKAN formData.password
-      }),
-    });
+    try {
+      // Query langsung ke Supabase table admins
+      const { data: admin, error } = await supabaseAdmin
+        .from('admins')
+        .select('id, full_name, email, role, password')
+        .eq('email', email)
+        .eq('password', password) // Password disimpan sebagai plain text
+        .single();
 
-    // ⚠️ DEBUG: Log raw response
-    console.log('📥 Raw response status:', response.status);
-    
-    const data = await response.json();
-    console.log('📥 Response data:', data);
+      console.log('📦 Supabase response:', { admin, error });
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
-    }
-
-    console.log('✅ Login response:', data);
-
-    // Simpan data admin ke localStorage
-    if (data.success && data.user) {
-      localStorage.setItem('admin', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        role: data.user.role
-      }));
-      
-      // Juga simpan token jika ada
-      if (data.token) { // ← PERHATIKAN: backend mengembalikan 'token', bukan 'session.access_token'
-        localStorage.setItem('admin_token', data.token);
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw new Error('Email atau password salah');
       }
 
-      console.log('📦 Admin data saved to localStorage');
+      if (!admin) {
+        throw new Error('Admin tidak ditemukan');
+      }
+
+      console.log('✅ Login successful:', admin.full_name);
+
+      // Simpan data admin ke localStorage
+      localStorage.setItem('admin', JSON.stringify({
+        id: admin.id,
+        name: admin.full_name, // Gunakan full_name dari database
+        email: admin.email,
+        role: admin.role
+      }));
+
+      // Generate simple token
+      localStorage.setItem('admin_token', 'supabase_admin_' + Date.now());
+
+      console.log('💾 Data saved to localStorage');
       
       // Redirect ke dashboard
       window.location.href = '/admin/dashboard';
-    } else {
-      throw new Error('Invalid response data');
-    }
 
-  } catch (err: any) {
-    console.error('❌ Login error:', err);
-    setError(err.message || 'Login failed');
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (err: any) {
+      console.error('❌ Login error:', err);
+      setError(err.message || 'Login gagal');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -136,7 +116,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="rickysilaban384@gmail.com"
+                placeholder="admin@belidisini.com"
                 required
                 disabled={loading}
               />
@@ -178,7 +158,16 @@ const handleSubmit = async (e: React.FormEvent) => {
               )}
             </button>
           </form>
-        </div> {/* <- Tutup Login Card */}
+
+          {/* Debug Info */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600 text-center">
+              Test credentials:<br/>
+              <strong>admin@belidisini.com</strong> / <strong>admin123</strong><br/>
+              <strong>rickysilaban384@gmail.com</strong> / <strong>password123</strong>
+            </p>
+          </div>
+        </div>
 
         {/* Back to Home */}
         <div className="text-center mt-6">
