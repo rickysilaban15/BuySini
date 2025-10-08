@@ -14,115 +14,94 @@ const AdminLogin: React.FC = () => {
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const adminData = localStorage.getItem('admin');
-        
-        if (adminData) {
-          const parsed = JSON.parse(adminData);
-          
-          // Validasi lebih strict
-          if (parsed.role === 'admin' && parsed.email && parsed.name) {
-            console.log('✅ Admin already logged in');
+        const token = localStorage.getItem('admin_token');
+        if (token) {
+          const response = await fetch('http://localhost:5000/api/admin/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
             navigate('/admin/dashboard', { replace: true });
           } else {
-            // Data admin tidak valid, clear semua
-            console.log('❌ Invalid admin data, clearing...');
-            clearAdminData();
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin');
           }
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        clearAdminData();
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin');
       }
-    };
-
-    const clearAdminData = () => {
-      localStorage.removeItem('admin');
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
     };
 
     checkAdminAuth();
   }, [navigate]);
 
-  // Handle login dengan secure credentials
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  // AdminLogin.tsx - Perbaiki bagian handleSubmit
+// AdminLogin.tsx - PERBAIKI bagian handleSubmit
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    console.log('📤 Login attempt:', { email });
+  // ⚠️ DEBUG: Log data yang akan dikirim
+  console.log('📤 Sending login data:', { email, password });
 
-    // Secure admin credentials - tidak terlihat di frontend
-    const isValidCredentials = validateAdminCredentials(email, password);
+  try {
+    const response = await fetch('http://localhost:5000/api/admin/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,      // ← GUNAKAN STATE email, BUKAN formData.email
+        password: password // ← GUNAKAN STATE password, BUKAN formData.password
+      }),
+    });
 
-    if (isValidCredentials) {
-      // Simpan ke localStorage
-      const adminData = {
-        email: email,
-        name: getAdminName(email),
-        role: 'admin',
-        loginTime: new Date().toISOString()
-      };
+    // ⚠️ DEBUG: Log raw response
+    console.log('📥 Raw response status:', response.status);
+    
+    const data = await response.json();
+    console.log('📥 Response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+
+    console.log('✅ Login response:', data);
+
+    // Simpan data admin ke localStorage
+    if (data.success && data.user) {
+      localStorage.setItem('admin', JSON.stringify({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role
+      }));
       
-      localStorage.setItem('admin', JSON.stringify(adminData));
-      console.log('✅ Admin logged in successfully');
+      // Juga simpan token jika ada
+      if (data.token) { // ← PERHATIKAN: backend mengembalikan 'token', bukan 'session.access_token'
+        localStorage.setItem('admin_token', data.token);
+      }
+
+      console.log('📦 Admin data saved to localStorage');
       
       // Redirect ke dashboard
-      navigate('/admin/dashboard', { replace: true });
+      window.location.href = '/admin/dashboard';
     } else {
-      setError('Email atau password salah');
-      console.log('❌ Login failed: Invalid credentials');
+      throw new Error('Invalid response data');
     }
 
+  } catch (err: any) {
+    console.error('❌ Login error:', err);
+    setError(err.message || 'Login failed');
+  } finally {
     setLoading(false);
-  };
-
-  // Validasi credentials secara secure
-  const validateAdminCredentials = (email: string, password: string): boolean => {
-    // Hash sederhana untuk security basic
-    const credentials = [
-      {
-        email: 'admin@belidisini.com',
-        passwordHash: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' // 123
-      },
-      {
-        email: 'ricky@belidisini.com', 
-        passwordHash: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' // 123
-      },
-      {
-        email: 'rickysilaban384@gmail.com',
-        passwordHash: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3' // 123
-      }
-    ];
-
-    const user = credentials.find(cred => cred.email === email);
-    if (!user) return false;
-
-    // Simple hash validation (dalam production, gunakan backend validation)
-    const inputHash = simpleHash(password);
-    return inputHash === user.passwordHash;
-  };
-
-  // Simple hash function untuk demo
-  const simpleHash = (str: string): string => {
-    // Ini hanya untuk demo - dalam production gunakan proper backend validation
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-  };
-
-  const getAdminName = (email: string): string => {
-    const names: { [key: string]: string } = {
-      'admin@belidisini.com': 'Super Admin',
-      'ricky@belidisini.com': 'Ricky Admin', 
-      'rickysilaban384@gmail.com': 'Ricky Silaban'
-    };
-    return names[email] || 'Administrator';
-  };
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -157,7 +136,7 @@ const AdminLogin: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="Masukkan email admin"
+                placeholder="rickysilaban384@gmail.com"
                 required
                 disabled={loading}
               />
@@ -174,7 +153,7 @@ const AdminLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="Masukkan password"
+                placeholder="••••••••"
                 required
                 disabled={loading}
               />
@@ -199,14 +178,7 @@ const AdminLogin: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Security Notice */}
-          <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-sm text-yellow-800 text-center">
-              <strong>Keamanan:</strong> Hanya personel yang berwenang yang dapat mengakses panel admin.
-            </p>
-          </div>
-        </div>
+        </div> {/* <- Tutup Login Card */}
 
         {/* Back to Home */}
         <div className="text-center mt-6">
