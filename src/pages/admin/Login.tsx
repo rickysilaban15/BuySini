@@ -1,7 +1,7 @@
 // pages/AdminLogin.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, Shield } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -10,24 +10,22 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Cek apakah sudah login
+  // Cek apakah sudah login - SESUAIKAN DENGAN ADMINLAYOUT
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const adminData = localStorage.getItem('admin');
+        const adminToken = localStorage.getItem('admin_token');
+        const adminUser = localStorage.getItem('admin_user');
         
-        if (adminData) {
-          const parsed = JSON.parse(adminData);
-          // Simple validation - jika ada admin data di localStorage, consider sebagai logged in
-          if (parsed.role === 'admin') {
-            navigate('/admin/dashboard', { replace: true });
-          } else {
-            localStorage.removeItem('admin');
-          }
+        // Jika ada token dan user data, redirect ke dashboard
+        if (adminToken && adminUser) {
+          navigate('/admin/dashboard', { replace: true });
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        localStorage.removeItem('admin');
+        // Clear invalid data
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
       }
     };
 
@@ -70,12 +68,21 @@ const AdminLogin: React.FC = () => {
     );
 
     if (admin) {
-      // Simpan ke localStorage
-      localStorage.setItem('admin', JSON.stringify(admin));
-      console.log('✅ Admin logged in:', admin.email);
-      
-      // Redirect ke dashboard
-      navigate('/admin/dashboard', { replace: true });
+      try {
+        // SIMPAN SESUAI DENGAN FORMAT YANG DIHARAPKAN OLEH ADMINLAYOUT
+        const token = btoa(`${email}:${Date.now()}`); // Generate simple token
+        localStorage.setItem('admin_token', token);
+        localStorage.setItem('admin_user', JSON.stringify(admin));
+        
+        console.log('✅ Admin logged in:', admin.email);
+        console.log('🔐 Token saved:', token);
+        
+        // Redirect ke dashboard
+        navigate('/admin/dashboard', { replace: true });
+      } catch (err) {
+        console.error('Error saving auth data:', err);
+        setError('Gagal menyimpan data login');
+      }
     } else {
       setError('Email atau password salah');
       console.log('❌ Login failed: Invalid credentials');
@@ -117,7 +124,7 @@ const AdminLogin: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="admin@belidisini.com"
+                placeholder="ricky12@gmail.com"
                 required
                 disabled={loading}
               />
@@ -160,13 +167,15 @@ const AdminLogin: React.FC = () => {
             </button>
           </form>
 
-          {/* Demo Credentials Info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800 font-medium mb-2">Demo Credentials:</p>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p>Email: admin@belidisini.com | Password: admin123</p>
-              <p>Email: ricky@belidisini.com | Password: ricky123</p>
+          {/* Ganti Demo Credentials dengan Warning Message */}
+          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="h-4 w-4 text-amber-600" />
+              <p className="text-sm font-medium text-amber-800">Peringatan Keamanan</p>
             </div>
+            <p className="text-xs text-amber-700">
+              Hanya yang berwenang dapat mengakses halaman admin
+            </p>
           </div>
         </div>
 
