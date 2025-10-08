@@ -251,24 +251,17 @@ useEffect(() => {
   }
 };
   const fetchOrderDetails = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
+  setLoading(true);
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
 
-      if (error) throw error;
-      setOrder(data);
-      setQrData(generateQRData());
-      
-      // Set shipping cost dan subtotal dari order
-      if (data.shipping_cost) setShippingCost(data.shipping_cost);
-      if (data.subtotal) setSubtotal(data.subtotal);
-      if (data.shipping_method) setSelectedShipping(data.shipping_method);
-    } catch (err: any) {
-      console.error('Error fetching order:', err);
+    if (error) {
+      console.error('Error fetching order:', error);
+      // Fallback ke data dari state
       if (trackingPin) {
         const tempOrder = {
           id: orderId || 'temp',
@@ -283,10 +276,24 @@ useEffect(() => {
         setOrder(tempOrder);
         setQrData(generateQRData());
       }
-    } finally {
-      setLoading(false);
+      return; // Jangan throw error, biarkan continue
     }
-  };
+    
+    setOrder(data);
+    setQrData(generateQRData());
+    
+    // Set shipping cost dan subtotal dari order
+    if (data.shipping_cost) setShippingCost(data.shipping_cost);
+    if (data.subtotal) setSubtotal(data.subtotal);
+    if (data.shipping_method) setSelectedShipping(data.shipping_method);
+    
+  } catch (err: any) {
+    console.error('Unexpected error:', err);
+    // Tetap biarkan user bisa menggunakan aplikasi
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleShippingMethodSelect = (shippingMethodId: string) => {
   console.log('🚚 Selecting shipping method:', shippingMethodId);
