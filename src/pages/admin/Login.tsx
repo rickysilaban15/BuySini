@@ -14,24 +14,19 @@ const AdminLogin: React.FC = () => {
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const token = localStorage.getItem('admin_token');
-        if (token) {
-          const response = await fetch('http://localhost:5000/api/admin/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
+        const adminData = localStorage.getItem('admin');
+        
+        if (adminData) {
+          const parsed = JSON.parse(adminData);
+          // Simple validation - jika ada admin data di localStorage, consider sebagai logged in
+          if (parsed.role === 'admin') {
             navigate('/admin/dashboard', { replace: true });
           } else {
-            localStorage.removeItem('admin_token');
             localStorage.removeItem('admin');
           }
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        localStorage.removeItem('admin_token');
         localStorage.removeItem('admin');
       }
     };
@@ -39,69 +34,55 @@ const AdminLogin: React.FC = () => {
     checkAdminAuth();
   }, [navigate]);
 
-  // AdminLogin.tsx - Perbaiki bagian handleSubmit
-// AdminLogin.tsx - PERBAIKI bagian handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  // Handle login dengan hardcoded credentials
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  // ⚠️ DEBUG: Log data yang akan dikirim
-  console.log('📤 Sending login data:', { email, password });
+    console.log('📤 Login attempt:', { email, password });
 
-  try {
-    const response = await fetch('http://localhost:5000/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Hardcoded admin credentials
+    const adminCredentials = [
+      { 
+        email: 'admin@belidisini.com', 
+        password: 'admin123', 
+        name: 'Super Admin',
+        role: 'admin' 
       },
-      body: JSON.stringify({
-        email: email,      // ← GUNAKAN STATE email, BUKAN formData.email
-        password: password // ← GUNAKAN STATE password, BUKAN formData.password
-      }),
-    });
-
-    // ⚠️ DEBUG: Log raw response
-    console.log('📥 Raw response status:', response.status);
-    
-    const data = await response.json();
-    console.log('📥 Response data:', data);
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
-    }
-
-    console.log('✅ Login response:', data);
-
-    // Simpan data admin ke localStorage
-    if (data.success && data.user) {
-      localStorage.setItem('admin', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        role: data.user.role
-      }));
-      
-      // Juga simpan token jika ada
-      if (data.token) { // ← PERHATIKAN: backend mengembalikan 'token', bukan 'session.access_token'
-        localStorage.setItem('admin_token', data.token);
+      { 
+        email: 'ricky@belidisini.com', 
+        password: 'ricky123', 
+        name: 'Ricky Admin',
+        role: 'admin' 
+      },
+      { 
+        email: 'rickysilaban384@gmail.com', 
+        password: 'ricky123', 
+        name: 'Ricky Silaban',
+        role: 'admin' 
       }
+    ];
 
-      console.log('📦 Admin data saved to localStorage');
+    // Cari admin yang match
+    const admin = adminCredentials.find(
+      cred => cred.email === email && cred.password === password
+    );
+
+    if (admin) {
+      // Simpan ke localStorage
+      localStorage.setItem('admin', JSON.stringify(admin));
+      console.log('✅ Admin logged in:', admin.email);
       
       // Redirect ke dashboard
-      window.location.href = '/admin/dashboard';
+      navigate('/admin/dashboard', { replace: true });
     } else {
-      throw new Error('Invalid response data');
+      setError('Email atau password salah');
+      console.log('❌ Login failed: Invalid credentials');
     }
 
-  } catch (err: any) {
-    console.error('❌ Login error:', err);
-    setError(err.message || 'Login failed');
-  } finally {
     setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -136,7 +117,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="rickysilaban384@gmail.com"
+                placeholder="admin@belidisini.com"
                 required
                 disabled={loading}
               />
@@ -178,7 +159,16 @@ const handleSubmit = async (e: React.FormEvent) => {
               )}
             </button>
           </form>
-        </div> {/* <- Tutup Login Card */}
+
+          {/* Demo Credentials Info */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium mb-2">Demo Credentials:</p>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p>Email: admin@belidisini.com | Password: admin123</p>
+              <p>Email: ricky@belidisini.com | Password: ricky123</p>
+            </div>
+          </div>
+        </div>
 
         {/* Back to Home */}
         <div className="text-center mt-6">
