@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase'; // Import Supabase client
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -11,7 +10,7 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Cek apakah sudah login - PERBAIKI
+  // Cek apakah sudah login
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
@@ -35,66 +34,15 @@ const AdminLogin: React.FC = () => {
     checkAdminAuth();
   }, [navigate]);
 
-  // PERBAIKI handleSubmit - Gunakan Supabase Auth
+  // Handle login dengan hardcoded credentials
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    console.log('📤 Sending login data:', { email, password });
+    console.log('📤 Login attempt:', { email, password });
 
-    try {
-      // ✅ GUNAKAN SUPABASE AUTH - GANTI BACKEND API CALL
-      const { data, error: supabaseError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
-
-      console.log('📥 Supabase response:', { data, error: supabaseError });
-
-      if (supabaseError) {
-        throw new Error(supabaseError.message || 'Login failed');
-      }
-
-      if (!data.user) {
-        throw new Error('No user data returned');
-      }
-
-      console.log('✅ Login successful:', data.user);
-
-      // Simpan data admin ke localStorage
-      localStorage.setItem('admin', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.user_metadata?.name || 'Admin',
-        role: 'admin'
-      }));
-
-      // Juga simpan session jika perlu
-      if (data.session) {
-        localStorage.setItem('admin_token', data.session.access_token);
-      }
-
-      console.log('📦 Admin data saved to localStorage');
-      
-      // Redirect ke dashboard
-      navigate('/admin/dashboard', { replace: true });
-
-    } catch (err: any) {
-      console.error('❌ Login error:', err);
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Atau JIKA MAU PAKAI HARDCODED CREDENTIALS (Lebih Simple):
-  const handleSubmitSimple = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    // Hardcoded admin credentials untuk sementara
+    // Hardcoded admin credentials
     const adminCredentials = [
       { 
         email: 'admin@belidisini.com', 
@@ -116,6 +64,7 @@ const AdminLogin: React.FC = () => {
       }
     ];
 
+    // Cari admin yang match
     const admin = adminCredentials.find(
       cred => cred.email === email && cred.password === password
     );
@@ -124,17 +73,16 @@ const AdminLogin: React.FC = () => {
       // Simpan ke localStorage
       localStorage.setItem('admin', JSON.stringify(admin));
       console.log('✅ Admin logged in:', admin.email);
+      
+      // Redirect ke dashboard
       navigate('/admin/dashboard', { replace: true });
     } else {
       setError('Email atau password salah');
+      console.log('❌ Login failed: Invalid credentials');
     }
 
     setLoading(false);
   };
-
-  // Pilih salah satu:
-  // onSubmit={handleSubmit}       // Untuk Supabase Auth
-  // onSubmit={handleSubmitSimple} // Untuk hardcoded credentials
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -157,7 +105,7 @@ const AdminLogin: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmitSimple} className="space-y-6"> {/* GANTI DI SINI */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -211,6 +159,15 @@ const AdminLogin: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Demo Credentials Info */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium mb-2">Demo Credentials:</p>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p>Email: admin@belidisini.com | Password: admin123</p>
+              <p>Email: ricky@belidisini.com | Password: ricky123</p>
+            </div>
+          </div>
         </div>
 
         {/* Back to Home */}
