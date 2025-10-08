@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase'; // Import Supabase client
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -10,28 +11,23 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Cek apakah sudah login
+  // Cek apakah sudah login - PERBAIKI
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const token = localStorage.getItem('admin_token');
-        if (token) {
-          const response = await fetch('http://localhost:5000/api/admin/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
+        const adminData = localStorage.getItem('admin');
+        
+        if (adminData) {
+          const parsed = JSON.parse(adminData);
+          // Simple validation - jika ada admin data di localStorage, consider sebagai logged in
+          if (parsed.role === 'admin') {
             navigate('/admin/dashboard', { replace: true });
           } else {
-            localStorage.removeItem('admin_token');
             localStorage.removeItem('admin');
           }
         }
       } catch (err) {
         console.error('Auth check error:', err);
-        localStorage.removeItem('admin_token');
         localStorage.removeItem('admin');
       }
     };
@@ -39,69 +35,106 @@ const AdminLogin: React.FC = () => {
     checkAdminAuth();
   }, [navigate]);
 
-  // AdminLogin.tsx - Perbaiki bagian handleSubmit
-// AdminLogin.tsx - PERBAIKI bagian handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  // PERBAIKI handleSubmit - Gunakan Supabase Auth
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  // ⚠️ DEBUG: Log data yang akan dikirim
-  console.log('📤 Sending login data:', { email, password });
+    console.log('📤 Sending login data:', { email, password });
 
-  try {
-    const response = await fetch('http://localhost:5000/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email,      // ← GUNAKAN STATE email, BUKAN formData.email
-        password: password // ← GUNAKAN STATE password, BUKAN formData.password
-      }),
-    });
+    try {
+      // ✅ GUNAKAN SUPABASE AUTH - GANTI BACKEND API CALL
+      const { data, error: supabaseError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
 
-    // ⚠️ DEBUG: Log raw response
-    console.log('📥 Raw response status:', response.status);
-    
-    const data = await response.json();
-    console.log('📥 Response data:', data);
+      console.log('📥 Supabase response:', { data, error: supabaseError });
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
-    }
+      if (supabaseError) {
+        throw new Error(supabaseError.message || 'Login failed');
+      }
 
-    console.log('✅ Login response:', data);
+      if (!data.user) {
+        throw new Error('No user data returned');
+      }
 
-    // Simpan data admin ke localStorage
-    if (data.success && data.user) {
+      console.log('✅ Login successful:', data.user);
+
+      // Simpan data admin ke localStorage
       localStorage.setItem('admin', JSON.stringify({
         id: data.user.id,
         email: data.user.email,
-        name: data.user.name,
-        role: data.user.role
+        name: data.user.user_metadata?.name || 'Admin',
+        role: 'admin'
       }));
-      
-      // Juga simpan token jika ada
-      if (data.token) { // ← PERHATIKAN: backend mengembalikan 'token', bukan 'session.access_token'
-        localStorage.setItem('admin_token', data.token);
+
+      // Juga simpan session jika perlu
+      if (data.session) {
+        localStorage.setItem('admin_token', data.session.access_token);
       }
 
       console.log('📦 Admin data saved to localStorage');
       
       // Redirect ke dashboard
-      window.location.href = '/admin/dashboard';
+      navigate('/admin/dashboard', { replace: true });
+
+    } catch (err: any) {
+      console.error('❌ Login error:', err);
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Atau JIKA MAU PAKAI HARDCODED CREDENTIALS (Lebih Simple):
+  const handleSubmitSimple = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    // Hardcoded admin credentials untuk sementara
+    const adminCredentials = [
+      { 
+        email: 'admin@belidisini.com', 
+        password: 'admin123', 
+        name: 'Super Admin',
+        role: 'admin' 
+      },
+      { 
+        email: 'ricky@belidisini.com', 
+        password: 'ricky123', 
+        name: 'Ricky Admin',
+        role: 'admin' 
+      },
+      { 
+        email: 'rickysilaban384@gmail.com', 
+        password: 'ricky123', 
+        name: 'Ricky Silaban',
+        role: 'admin' 
+      }
+    ];
+
+    const admin = adminCredentials.find(
+      cred => cred.email === email && cred.password === password
+    );
+
+    if (admin) {
+      // Simpan ke localStorage
+      localStorage.setItem('admin', JSON.stringify(admin));
+      console.log('✅ Admin logged in:', admin.email);
+      navigate('/admin/dashboard', { replace: true });
     } else {
-      throw new Error('Invalid response data');
+      setError('Email atau password salah');
     }
 
-  } catch (err: any) {
-    console.error('❌ Login error:', err);
-    setError(err.message || 'Login failed');
-  } finally {
     setLoading(false);
-  }
-};
+  };
+
+  // Pilih salah satu:
+  // onSubmit={handleSubmit}       // Untuk Supabase Auth
+  // onSubmit={handleSubmitSimple} // Untuk hardcoded credentials
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -124,7 +157,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmitSimple} className="space-y-6"> {/* GANTI DI SINI */}
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -136,7 +169,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="rickysilaban384@gmail.com"
+                placeholder="admin@belidisini.com"
                 required
                 disabled={loading}
               />
@@ -178,7 +211,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               )}
             </button>
           </form>
-        </div> {/* <- Tutup Login Card */}
+        </div>
 
         {/* Back to Home */}
         <div className="text-center mt-6">
