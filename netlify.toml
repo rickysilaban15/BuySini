@@ -1,0 +1,9 @@
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' https://app.sandbox.midtrans.com; connect-src 'self' https://*.midtrans.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.midtrans.com; frame-src https://app.sandbox.midtrans.com"
