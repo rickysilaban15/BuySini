@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Halaman utama -->
+  <url>
+    <loc>https://belidisini.netlify.app/</loc>
+    <priority>1.0</priority>
+    <changefreq>daily</changefreq>
+  </url>
+
+  <!-- Halaman utama lain -->
+  <url><loc>https://belidisini.netlify.app/about</loc></url>
+  <url><loc>https://belidisini.netlify.app/products</loc></url>
+  <url><loc>https://belidisini.netlify.app/promo</loc></url>
+  <url><loc>https://belidisini.netlify.app/contact</loc></url>
+  <url><loc>https://belidisini.netlify.app/category</loc></url>
+  <url><loc>https://belidisini.netlify.app/faq</loc></url>
+  <url><loc>https://belidisini.netlify.app/help</loc></url>
+  <url><loc>https://belidisini.netlify.app/affiliate</loc></url>
+  <url><loc>https://belidisini.netlify.app/terms</loc></url>
+  <url><loc>https://belidisini.netlify.app/privacy</loc></url>
+  <url><loc>https://belidisini.netlify.app/cookies</loc></url>
+  <url><loc>https://belidisini.netlify.app/return-policy</loc></url>
+  <url><loc>https://belidisini.netlify.app/shipping-policy</loc></url>
+  <url><loc>https://belidisini.netlify.app/payment-shipping-logos</loc></url>
+  <url><loc>https://belidisini.netlify.app/order-history</loc></url>
+  <url><loc>https://belidisini.netlify.app/track-order</loc></url>
+
+  <!-- Contoh halaman produk detail (opsional) -->
+  <!-- Kalau produk dinamis, tambahkan lewat generator -->
+  <!-- <url><loc>https://belidisini.netlify.app/product/keripik-balado</loc></url> -->
+
+  <!-- Sitemap tambahan -->
+  <url><loc>https://belidisini.netlify.app/sitemap</loc></url>
+</urlset>
