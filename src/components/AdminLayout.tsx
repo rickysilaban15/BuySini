@@ -29,15 +29,25 @@ import {
   Palette,
   MessageCircle,
   CreditCard,
-  Truck
+  Truck,
+  VolumeX
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.ts';
 
 interface MenuItem {
   name: string;
   path: string;
   icon: React.ComponentType<any>;
   badge?: number;
+}
+
+interface Setting {
+  id: string;
+  key: string;
+  value: string;
+  type: string;
+  description?: string;
+  updated_at: string;
 }
 
 const AdminLayout: React.FC = () => {
@@ -228,34 +238,10 @@ const AdminLayout: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sidebarOpen, userMenuOpen, settingsMenuOpen]);
 
-  // LOGOUT FUNCTION YANG BERFUNGSI
   const handleLogout = () => {
-    console.log('🚪 Logging out admin...');
-    
-    // Hapus SEMUA admin-related data dari localStorage
-    const itemsToRemove = [
-      'admin_token',
-      'admin_user', 
-      'admin',
-      'adminData',
-      'admin_session',
-      'supabase.auth.token'
-    ];
-    
-    itemsToRemove.forEach(item => {
-      localStorage.removeItem(item);
-      sessionStorage.removeItem(item);
-    });
-    
-    // Clear Supabase session
-    supabase.auth.signOut().catch(console.error);
-    
-    console.log('✅ All admin data cleared, redirecting to login...');
-    
-    // Force redirect ke login page
-    setTimeout(() => {
-      window.location.href = '/admin/login';
-    }, 100);
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    navigate('/admin/login');
   };
 
   const getCurrentPageTitle = () => {
@@ -540,24 +526,52 @@ const AdminLayout: React.FC = () => {
                             className="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 text-gray-700 flex items-center gap-2"
                           >
                             <Globe className="w-4 h-4" />
-                            Header & Logo
+                            Header
                           </button>
+                          <button
+                            onClick={() => {
+                              navigate('/admin/settings?section=contact');
+                              setSettingsMenuOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 text-gray-700 flex items-center gap-2"
+                          >
+                            <HeadphonesIcon className="w-4 h-4" />
+                            Kontak
+                          </button>
+                          <div className="border-t pt-2 mt-1">
+                            <button
+                              onClick={() => {
+                                navigate('/admin/settings');
+                                setSettingsMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 text-blue-600 font-medium flex items-center gap-2"
+                            >
+                              <Settings className="w-4 h-4" />
+                              Semua Pengaturan
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
                   </li>
                 </ul>
               </li>
-              
-              {/* Logout Button */}
+
+              {/* System Status */}
               <li className="mt-auto">
-                <button
-                  onClick={handleLogout}
-                  className="group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <LogOut className="h-6 w-6 shrink-0 text-red-500 group-hover:text-red-700" />
-                  {desktopSidebarOpen && <span>Keluar</span>}
-                </button>
+                <div className="flex items-center gap-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 text-white" />
+                  </div>
+                  {desktopSidebarOpen && (
+                    <div className="text-sm leading-6">
+                      <p className="font-semibold text-gray-900">Status Sistem</p>
+                      <p className="text-gray-500">
+                        {getSetting('site_name', 'Buysini')} - Online
+                      </p>
+                    </div>
+                  )}
+                </div>
               </li>
             </ul>
           </nav>
@@ -567,11 +581,10 @@ const AdminLayout: React.FC = () => {
       {/* Mobile Sidebar */}
       <div
         id="mobile-sidebar"
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 transform transition duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } bg-white shadow-xl`}
+        className={`relative z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}
       >
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
+        <div className="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white px-6 pb-4 shadow-xl">
+          {/* Mobile Header */}
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 flex items-center justify-center">
@@ -586,13 +599,14 @@ const AdminLayout: React.FC = () => {
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              className="rounded-md p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
-          <nav className="flex flex-1 flex-col">
+          {/* Mobile Navigation */}
+          <nav className="flex flex-1 flex-col mt-5">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
@@ -603,7 +617,10 @@ const AdminLayout: React.FC = () => {
                     return (
                       <li key={item.path}>
                         <button
-                          onClick={() => navigate(item.path)}
+                          onClick={() => {
+                            navigate(item.path);
+                            setSidebarOpen(false);
+                          }}
                           className={`group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
                             isActive
                               ? 'bg-blue-50 text-blue-700'
@@ -615,54 +632,37 @@ const AdminLayout: React.FC = () => {
                               isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-blue-700'
                             }`}
                           />
-                          <span className="truncate">{item.name}</span>
-                          {item.badge && item.badge > 0 && (
-                            <span className={`ml-auto inline-flex items-center justify-center w-6 h-6 text-xs rounded-full ${
-                              isActive
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-red-100 text-red-600 group-hover:bg-red-200'
-                            }`}>
-                              {item.badge > 99 ? '99+' : item.badge}
-                            </span>
-                          )}
+                          <div className="flex items-center justify-between flex-1">
+                            <span className="truncate">{item.name}</span>
+                            {item.badge && item.badge > 0 && (
+                              <span className={`inline-flex items-center justify-center w-6 h-6 text-xs rounded-full ${
+                                isActive
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-red-100 text-red-600'
+                              }`}>
+                                {item.badge > 99 ? '99+' : item.badge}
+                              </span>
+                            )}
+                          </div>
                         </button>
                       </li>
                     );
                   })}
                   
+                  {/* Settings for Mobile */}
                   <li>
                     <button
                       onClick={() => {
                         navigate('/admin/settings');
                         setSidebarOpen(false);
                       }}
-                      className={`group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
-                        location.pathname.startsWith('/admin/settings')
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-700 hover:text-blue-700 hover:bg-blue-50'
-                      }`}
+                      className="group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 hover:text-blue-700 hover:bg-blue-50"
                     >
-                      <Settings
-                        className={`h-6 w-6 shrink-0 ${
-                          location.pathname.startsWith('/admin/settings')
-                            ? 'text-blue-700'
-                            : 'text-gray-400 group-hover:text-blue-700'
-                        }`}
-                      />
+                      <Settings className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-blue-700" />
                       <span className="truncate">Pengaturan</span>
                     </button>
                   </li>
                 </ul>
-              </li>
-              
-              <li className="mt-auto">
-                <button
-                  onClick={handleLogout}
-                  className="group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <LogOut className="h-6 w-6 shrink-0 text-red-500 group-hover:text-red-700" />
-                  <span>Keluar</span>
-                </button>
               </li>
             </ul>
           </nav>
@@ -670,67 +670,93 @@ const AdminLayout: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`lg:pl-${desktopSidebarOpen ? '72' : '20'} transition-all duration-300`}>
-        {/* Top Navigation */}
+      <div className={`transition-all duration-300 ${
+        desktopSidebarOpen ? 'lg:pl-72' : 'lg:pl-20'
+      }`}>
+        {/* Top Header */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-          {/* Mobile Menu Button */}
+          {/* Mobile menu button */}
           <button
             id="menu-button"
             type="button"
             className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu className="h-6 w-6" aria-hidden="true" />
+            <Menu className="h-6 w-6" />
           </button>
 
-          {/* Desktop Sidebar Toggle */}
-          <div className="hidden lg:flex lg:items-center">
-            <button
-              type="button"
-              className="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900"
-              onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
-            >
-              <Menu className="h-6 w-6" aria-hidden="true" />
-            </button>
-          </div>
+          {/* Desktop sidebar toggle */}
+          <button
+            className="text-gray-500 hover:text-gray-700 hidden lg:block"
+            onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
 
           {/* Separator */}
-          <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
+          <div className="h-6 w-px bg-gray-200 lg:hidden" />
 
+          {/* Page Title */}
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="relative flex flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 my-auto">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold leading-6 text-gray-900">
                 {getCurrentPageTitle()}
               </h1>
             </div>
-            <div className="flex items-center gap-x-4 lg:gap-x-6">
-              {/* Notifications */}
-              <button
-                type="button"
-                onClick={handleNotificationClick}
-                className="relative p-2 text-gray-400 hover:text-gray-500"
-              >
-                <Bell className="h-6 w-6" />
-                {orderCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
-                    {orderCount > 99 ? '99+' : orderCount}
-                  </span>
-                )}
-              </button>
 
-              {/* Settings Dropdown */}
-              <div className="relative" id="settings-menu">
-                <button
-                  type="button"
-                  className="-m-2.5 flex items-center p-2.5 text-gray-400 hover:text-gray-500"
-                  onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
-                >
-                  <Settings className="h-6 w-6" />
-                </button>
-                {settingsMenuOpen && <SettingsDropdown />}
+            {/* Search */}
+            <div className="hidden sm:flex sm:flex-1 sm:justify-center">
+              <div className="w-full max-w-lg">
+                <label htmlFor="search" className="sr-only">
+                  Search
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="search"
+                    name="search"
+                    className="block w-full rounded-md border-0 bg-white py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                    placeholder="Cari..."
+                    type="search"
+                  />
+                </div>
               </div>
+            </div>
 
-              {/* User Menu */}
+            {/* Right side */}
+            {/* Right side */}
+<div className="flex items-center gap-x-4 lg:gap-x-6">
+  {/* Quick Settings Dropdown */}
+  <div className="relative" id="settings-menu">
+    <button
+      type="button"
+      className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+      onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+      title="Pengaturan Cepat"
+    >
+      <Settings className="h-6 w-6" />
+    </button>
+    {settingsMenuOpen && <SettingsDropdown />}
+  </div>
+
+  {/* Notifications */}
+  <button 
+    type="button" 
+    className="relative -m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+    onClick={handleNotificationClick}
+  >
+    <Bell className="h-6 w-6" />
+    {orderCount > 0 && (
+      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+        {orderCount > 99 ? '99+' : orderCount}
+      </span>
+    )}
+  </button>
+
+
+              {/* Profile dropdown */}
               <div className="relative" id="user-menu">
                 <button
                   type="button"
@@ -738,25 +764,38 @@ const AdminLayout: React.FC = () => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
                   <span className="sr-only">Open user menu</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="hidden lg:flex lg:flex-col lg:items-end">
-                      <span className="text-sm font-medium text-gray-900">Admin</span>
-                      <span className="text-xs text-gray-500">Administrator</span>
-                    </div>
-                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
-                    <ChevronDown className="h-5 w-5 text-gray-400" />
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
                   </div>
+                  <span className="hidden lg:flex lg:items-center">
+                    <span className="ml-4 text-sm font-semibold leading-6 text-gray-900">
+                      Admin User
+                    </span>
+                    <ChevronDown className="ml-2 h-5 w-5 text-gray-400" />
+                  </span>
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5">
+                  <div className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5">
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">Admin User</p>
+                      <p className="text-xs text-gray-500">admin@buysini.com</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigate('/admin/settings');
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Settings className="mr-3 h-4 w-4 text-gray-400" />
+                      Pengaturan
+                    </button>
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-x-2 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left"
+                      className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="mr-3 h-4 w-4 text-red-500" />
                       Keluar
                     </button>
                   </div>
@@ -768,8 +807,8 @@ const AdminLayout: React.FC = () => {
 
         {/* Page Content */}
         <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <Outlet />
+          <div className="px-4 sm:px-6 lg:px-8">
+            <Outlet context={{ siteSettings, updateSiteSetting, getSetting }} />
           </div>
         </main>
       </div>
