@@ -342,140 +342,63 @@ useEffect(() => {
 };
 
   const handlePaymentMethodSelect = async (paymentMethodId: string) => {
-    if (!order) return;
+  if (!order) return;
 
-    setProcessingPayment(true);
-    setSelectedPayment(paymentMethodId);
+  setProcessingPayment(true);
+  setSelectedPayment(paymentMethodId);
 
-    try {
-      console.log('🔄 Starting payment for order:', order.id);
+  try {
+    console.log('🔄 Processing payment for order:', order.id);
 
-      // 1. Update order dengan payment method dan shipping
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_method: paymentMethodId,
-          shipping_method: selectedShipping,
-          shipping_cost: shippingCost,
-          subtotal: subtotal,
-          total_amount: totalAmount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
-
-      if (updateError) throw updateError;
-
-      // 2. Prepare request data
-      const requestBody = {
-        orderId: order.id,
-        orderNumber: order.order_number,
-        total: Math.round(totalAmount),
-        paymentMethod: paymentMethodId,
-        shippingMethod: selectedShipping,
-        shippingCost: shippingCost,
-        customer: {
-          nama: order.customer_name || 'Customer',
-          email: 'customer@example.com',
-          telepon: '08123456789'
-        }
-      };
-
-      console.log('📤 Request payload:', requestBody);
-
-      // 3. Call backend dengan timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch('http://localhost:5000/api/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log('📥 Response status:', response.status);
-
-      const responseText = await response.text();
-      console.log('📥 Raw response body:', responseText);
-
-      let paymentData;
-      try {
-        paymentData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
-        throw new Error('Invalid response from server');
-      }
-
-      if (!response.ok) {
-        console.error('❌ Backend error:', paymentData);
-        throw new Error(paymentData.error || `HTTP ${response.status}`);
-      }
-
-      console.log('✅ Payment data structure:', paymentData);
-      console.log('🔍 Checking for redirect_url...');
-      console.log('   - Root level:', paymentData.redirect_url);
-      console.log('   - Data object:', paymentData.data?.redirect_url);
-      console.log('   - All keys:', Object.keys(paymentData));
-
-      // 4. Cari redirect_url di berbagai kemungkinan location
-      let redirectUrl = paymentData.redirect_url || 
-                       paymentData.data?.redirect_url || 
-                       paymentData.redirect_urls?.web || 
-                       paymentData.redirect_urls?.redirect_url;
-
-      console.log('🔍 Found redirect URL:', redirectUrl);
-
-      if (!redirectUrl) {
-        console.error('❌ No redirect_url found in response structure:', paymentData);
-        throw new Error('Redirect URL tidak tersedia dari payment gateway');
-      }
-
-      // 5. Redirect
-      console.log('🔄 Redirecting to:', redirectUrl);
-      
-      // Simpan data ke localStorage
-      localStorage.setItem('pendingOrder', JSON.stringify({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        trackingPin: order.tracking_pin,
-        total: totalAmount,
-        customerName: order.customer_name,
-        paymentMethod: paymentMethodId,
-        shippingMethod: selectedShipping,
-        shippingCost: shippingCost,
+    // 1. Update order dengan payment method dan shipping
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        payment_method: paymentMethodId,
+        shipping_method: selectedShipping,
+        shipping_cost: shippingCost,
         subtotal: subtotal,
-        redirectUrl: redirectUrl,
-        timestamp: new Date().toISOString()
-      }));
-      
-      window.location.href = redirectUrl;
+        total_amount: totalAmount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', order.id);
 
-    } catch (error: any) {
-      console.error('❌ Payment error details:', error);
-      
-      let errorMessage = 'Gagal memproses pembayaran';
-      
-      if (error.name === 'AbortError') {
-        errorMessage = 'Timeout: Server tidak merespons dalam 15 detik';
-      } else if (error.message.includes('Redirect URL tidak tersedia')) {
-        errorMessage = 'Sistem pembayaran sedang sibuk. Silakan coba lagi dalam beberapa menit atau gunakan instruksi manual.';
-      } else if (error.message.includes('server key')) {
-        errorMessage = 'Konfigurasi payment gateway tidak valid';
-      } else {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      alert(`❌ ${errorMessage}`);
-      setShowManualInstructions(true);
-      setSelectedPayment('');
-    } finally {
-      setProcessingPayment(false);
+    if (updateError) throw updateError;
+
+    // 2. Tampilkan instruksi manual langsung
+    console.log('✅ Order updated, showing manual instructions');
+    setShowManualInstructions(true);
+    
+    // 3. Simpan data ke localStorage untuk backup
+    localStorage.setItem('pendingOrder', JSON.stringify({
+      orderId: order.id,
+      orderNumber: order.order_number,
+      trackingPin: order.tracking_pin,
+      total: totalAmount,
+      customerName: order.customer_name,
+      paymentMethod: paymentMethodId,
+      shippingMethod: selectedShipping,
+      shippingCost: shippingCost,
+      subtotal: subtotal,
+      timestamp: new Date().toISOString()
+    }));
+
+  } catch (error: any) {
+    console.error('❌ Payment processing error:', error);
+    
+    let errorMessage = 'Gagal memproses pembayaran';
+    
+    if (error.message) {
+      errorMessage = error.message;
     }
-  };
+    
+    alert(`❌ ${errorMessage}`);
+    setShowManualInstructions(true);
+    setSelectedPayment('');
+  } finally {
+    setProcessingPayment(false);
+  }
+};
 
   const handleConfirmAndGoToInvoice = async () => {
   if (!order) return;
