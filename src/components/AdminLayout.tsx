@@ -32,7 +32,7 @@ import {
   Truck,
   VolumeX
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client.ts';
 
 interface MenuItem {
   name: string;
