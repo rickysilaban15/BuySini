@@ -10,40 +10,38 @@ const Header = () => {
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isScrolled, setIsScrolled] = useState(false); // 👈 state untuk scroll
+  const [isScrolled, setIsScrolled] = useState(false);
   const { products } = useProducts();
   const navigate = useNavigate();
 
   // Deteksi scroll
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20); // aktif kalau sudah scroll > 20px
+      setIsScrolled(window.scrollY > 20);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Check admin login status
+  // Check admin login status - FIXED: Tidak pakai localhost:5000
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const token = localStorage.getItem("admin_token");
-        if (!token) {
-          setIsAdminLoggedIn(false);
-          setIsCheckingAuth(false);
-          return;
-        }
-
-        const response = await fetch("http://localhost:5000/api/admin/verify", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          setIsAdminLoggedIn(true);
+        const adminData = localStorage.getItem("admin");
+        
+        if (adminData) {
+          const parsed = JSON.parse(adminData);
+          // Cek langsung dari localStorage
+          if (parsed.role === 'admin' && parsed.email) {
+            setIsAdminLoggedIn(true);
+          } else {
+            // Data tidak valid, clear
+            localStorage.removeItem("admin");
+            localStorage.removeItem("admin_token");
+            setIsAdminLoggedIn(false);
+          }
         } else {
-          localStorage.removeItem("admin_token");
-          localStorage.removeItem("admin");
           setIsAdminLoggedIn(false);
         }
       } catch (error) {
@@ -73,18 +71,17 @@ const Header = () => {
     { name: "Kelola Kategori", href: "/admin/categories", icon: Settings },
   ];
 
+  // FIXED: Logout tanpa panggil localhost:5000
   const handleAdminLogout = async () => {
-    try {
-      await fetch("http://localhost:5000/api/admin/logout", { method: "POST" });
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      localStorage.removeItem("admin_token");
-      localStorage.removeItem("admin");
-      setIsAdminLoggedIn(false);
-      setIsAdminDropdownOpen(false);
-      navigate("/");
-    }
+    // Hapus semua admin data dari localStorage
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin");
+    
+    setIsAdminLoggedIn(false);
+    setIsAdminDropdownOpen(false);
+    navigate("/");
+    
+    console.log("✅ Admin logged out successfully");
   };
 
   const handleAdminAction = () => {
@@ -133,7 +130,6 @@ const Header = () => {
               </h1>
             </div>
           </Link>
-
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
@@ -237,64 +233,63 @@ const Header = () => {
         </div>
 
         {isMenuOpen && (
-  <div className="lg:hidden pb-4 animate-in fade-in-80">
-    <nav className="flex flex-col space-y-2 
-      bg-gradient-to-b from-indigo-600 via-purple-700 to-gray-900
-      text-white rounded-lg p-4 shadow-xl border border-indigo-500/30">
-      
-      {navigationItems.map((item) => (
-        <Link
-          key={item.name}
-          to={item.href}
-          className="px-4 py-3 text-white hover:text-indigo-300 hover:bg-white/10 rounded-lg transition-all duration-300 font-medium"
-          onClick={() => setIsMenuOpen(false)}
-        >
-          {item.name}
-        </Link>
-      ))}
+          <div className="lg:hidden pb-4 animate-in fade-in-80">
+            <nav className="flex flex-col space-y-2 
+              bg-gradient-to-b from-indigo-600 via-purple-700 to-gray-900
+              text-white rounded-lg p-4 shadow-xl border border-indigo-500/30">
+              
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="px-4 py-3 text-white hover:text-indigo-300 hover:bg-white/10 rounded-lg transition-all duration-300 font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
 
-      {/* Mobile Admin Section */}
-      <div className="border-t border-white/20 pt-4 mt-2">
-        {isAdminLoggedIn ? (
-          <>
-            <p className="px-4 py-2 text-sm font-medium text-white mb-2">
-              Admin Panel
-            </p>
-            {adminMenuItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className="flex items-center space-x-2 px-4 py-2 text-sm text-white hover:text-indigo-300 hover:bg-white/10 rounded-lg transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <item.icon className="w-4 h-4" />
-                <span>{item.name}</span>
-              </Link>
-            ))}
-            <button
-              onClick={handleAdminLogout}
-              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:text-red-500 hover:bg-white/10 rounded-lg transition-colors mt-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout Admin</span>
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => {
-              navigate("/admin/login");
-              setIsMenuOpen(false);
-            }}
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-lg text-center font-semibold hover:opacity-90 transition-colors"
-          >
-            Login Admin
-          </button>
+              {/* Mobile Admin Section */}
+              <div className="border-t border-white/20 pt-4 mt-2">
+                {isAdminLoggedIn ? (
+                  <>
+                    <p className="px-4 py-2 text-sm font-medium text-white mb-2">
+                      Admin Panel
+                    </p>
+                    {adminMenuItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-white hover:text-indigo-300 hover:bg-white/10 rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    ))}
+                    <button
+                      onClick={handleAdminLogout}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:text-red-500 hover:bg-white/10 rounded-lg transition-colors mt-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout Admin</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      navigate("/admin/login");
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-lg text-center font-semibold hover:opacity-90 transition-colors"
+                  >
+                    Login Admin
+                  </button>
+                )}
+              </div>
+            </nav>
+          </div>
         )}
-      </div>
-    </nav>
-  </div>
-)}
-
       </div>
 
       {/* Backdrop for dropdown */}
